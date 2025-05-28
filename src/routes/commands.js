@@ -1,61 +1,72 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import supabase from "../utils/supabaseClient.js"
 
-// Necessário no ESM para resolver __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let comandos = [] // cache em memória
+let categorias = {} // cache agrupado por categoria
 
-const commandsPath = path.join(__dirname, '../../commands.json');
-const commands = JSON.parse(fs.readFileSync(commandsPath, 'utf-8'));
+// Carregar comandos do Supabase e organizar
+async function carregarComandos() {
+    const { data, error } = await supabase.from('comandos').select()
+
+    if (error) {
+        console.error('Erro ao carregar comandos do Supabase:', error)
+        return
+    }
+
+    comandos = data || []
+
+    // Agrupar por categoria
+    categorias = {}
+    for (const cmd of comandos) {
+        if (!cmd.command) continue
+
+        const categoria = cmd.categoria?.toLowerCase() || 'outros'
+        if (!categorias[categoria]) categorias[categoria] = []
+
+        categorias[categoria].push(cmd)
+    }
+
+    console.log(`✅ ${comandos.length} comandos carregados do Supabase.`)
+}
+
+await carregarComandos()
+
+// Opcional: recarregar cache a cada 10 min
+setInterval(carregarComandos, 10 * 60 * 1000)
 
 export default async function commandRoute(client) {
     client.on('message', async (msg) => {
-        if (!msg.body.startsWith('/')) return;
+        if (!msg.body.startsWith('/')) return
 
-        const inputCommand = msg.body.slice(1).toLowerCase();
-
-        // Agrupar comandos por categoria (guardando os objetos dos comandos)
-        const categorias = {};
-        for (const cmd of commands) {
-            if (!cmd.command) continue;
-
-            const categoria = cmd.categoria?.toLowerCase() || 'outros';
-            if (!categorias[categoria]) categorias[categoria] = [];
-
-            categorias[categoria].push(cmd);
-        }
+        const inputCommand = msg.body.slice(1).toLowerCase()
 
         // /menu: mostra lista dos comandos agrupados por categoria (só títulos)
         if (inputCommand === 'menu') {
-            let menu = '*_░ി❁⭝ Comandos*\n\n';
+            let menu = '*_░ി❁⭝ Comandos*\n\n'
             for (const cat in categorias) {
-                const formattedCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+                const formattedCat = cat.charAt(0).toUpperCase() + cat.slice(1)
                 const listCommands = categorias[cat]
                     .map(c => `- /${c.command}${c.title ? ` - ${c.title}` : ''}`)
-                    .join('\n');
-                menu += `▚ׁ̣۬❏̷̸ⷢ♔͎┄  ${formattedCat}\n${listCommands}\n\n`;
+                    .join('\n')
+                menu += `▚ׁ̣۬❏̷̸ⷢ♔͎┄  ${formattedCat}\n${listCommands}\n\n`
             }
-            await msg.reply(menu.trim());
-            return;
+            await msg.reply(menu.trim())
+            return
         }
 
-        // Se for uma categoria, enviar cada response separadamente, sem cabeçalho
+        // Se for uma categoria, enviar cada response separadamente
         if (categorias[inputCommand]) {
-            const formattedCat = inputCommand.charAt(0).toUpperCase() + inputCommand.slice(1);
-
             for (const cmd of categorias[inputCommand]) {
                 if (cmd.response && cmd.response.trim()) {
-                    await msg.reply(cmd.response);
+                    await msg.reply(cmd.response)
                 }
             }
-            return;
+            return
         }
 
         // Se for um comando individual
-        const found = commands.find(cmd => cmd.command.toLowerCase() === inputCommand);
+        const found = comandos.find(cmd => cmd.command.toLowerCase() === inputCommand)
         if (found && found.response) {
-            await msg.reply(found.response);
+            await msg.reply(found.response)
         }
-    });
+    })
 }
