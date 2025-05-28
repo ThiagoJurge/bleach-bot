@@ -1,4 +1,13 @@
-import commands from '../../commands.json' assert { type: 'json' };
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Necessário no ESM para resolver __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const commandsPath = path.join(__dirname, '../../commands.json');
+const commands = JSON.parse(fs.readFileSync(commandsPath, 'utf-8'));
 
 export default async function commandRoute(client) {
     client.on('message', async (msg) => {
