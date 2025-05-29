@@ -36,4 +36,4 @@ const mockClient = {
 }
 
 // Inicializa a função do bot com o mock
-await addCommandRoute(mockClient)
+await commandRoute(mockClient)

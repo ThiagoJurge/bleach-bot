@@ -1,43 +1,26 @@
 import supabase from "../utils/supabaseClient.js"
 
-let comandos = [] // cache em memória
-let categorias = {} // cache agrupado por categoria
-
-// Carregar comandos do Supabase e organizar
-async function carregarComandos() {
-    const { data, error } = await supabase.from('comandos').select()
-
-    if (error) {
-        console.error('Erro ao carregar comandos do Supabase:', error)
-        return
-    }
-
-    comandos = data || []
-
-    // Agrupar por categoria
-    categorias = {}
-    for (const cmd of comandos) {
-        if (!cmd.command) continue
-
-        const categoria = cmd.categoria?.toLowerCase() || 'outros'
-        if (!categorias[categoria]) categorias[categoria] = []
-
-        categorias[categoria].push(cmd)
-    }
-
-    console.log(`✅ ${comandos.length} comandos carregados do Supabase.`)
-}
-
-await carregarComandos()
-
-// Opcional: recarregar cache a cada 10 min
-setInterval(carregarComandos, 10 * 60 * 1000)
-
-export default async function commandRoute(client) {
+export default function commandRoute(client) {
     client.on('message', async (msg) => {
         if (!msg.body.startsWith('/')) return
 
         const inputCommand = msg.body.slice(1).toLowerCase()
+
+        // Buscar comandos sempre que receber mensagem
+        const { data: comandos, error } = await supabase.from('comandos').select()
+        if (error) {
+            console.error('Erro ao carregar comandos do Supabase:', error)
+            return
+        }
+
+        // Agrupar por categoria
+        const categorias = {}
+        for (const cmd of comandos) {
+            if (!cmd.command) continue
+            const categoria = cmd.categoria?.toLowerCase() || 'outros'
+            if (!categorias[categoria]) categorias[categoria] = []
+            categorias[categoria].push(cmd)
+        }
 
         // /menu: mostra lista dos comandos agrupados por categoria (só títulos)
         if (inputCommand === 'menu') {
