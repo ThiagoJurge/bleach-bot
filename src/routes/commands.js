@@ -60,23 +60,33 @@ export default function commandRoute(client) {
                 const formattedCat = cat.charAt(0).toUpperCase() + cat.slice(1)
                 menu += `▚ׁ̣۬❏̷̸ⷢ♔͎┄  ${formattedCat}\n${listCommands}\n\n`
             }
-
-            await msg.reply(menu.trim())
+            try {
+                await msg.reply(menu.trim())
+            } catch (err) {
+                console.error(err)
+            }
             return
         }
         // Se for uma categoria, responder com todos os comandos da categoria
         if (categorias[inputCommand]) {
             for (const cmd of categorias[inputCommand]) {
                 if (cmd.response && cmd.response.trim()) {
-                    await msg.reply(cmd.response)
+                    try {
+                        await msg.reply(cmd.response)
+                    } catch (err) {
+                        console.error(err)
+                    }
                 }
             }
             return
         }
 
         // Se for um comando individual
-        if (found && found.response) {
+        try {
             await msg.reply(found.response)
+        } catch (err) {
+            console.error('Erro ao enviar resposta:', err)
+
         }
     })
 }
