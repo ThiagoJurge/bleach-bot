@@ -1,19 +1,34 @@
 import supabase from "../utils/supabaseClient.js"
 
+// IDs dos grupos autorizados
+const GRUPO_FICHAS = '120363419581121169@g.us'
+
+//Grupo de testes
+// const GRUPO_FICHAS = '120363402300515570@g.us'
+
+// Função para verificar se o grupo tem permissão
+function grupoAutorizado(command, categoria, chatId) {
+    if (categoria === 'geral' && chatId === GRUPO_FICHAS) return false
+    if (categoria === "geral") return true
+    if (command) return true
+    return chatId === GRUPO_FICHAS
+}
+
 export default function commandRoute(client) {
     client.on('message', async (msg) => {
+        console.log(msg.body, msg.from, msg.author)
+        const chatId = msg.from
         if (!msg.body.startsWith('/')) return
-
         const inputCommand = msg.body.slice(1).toLowerCase()
 
-        // Buscar comandos sempre que receber mensagem
+        // Buscar comandos do Supabase
         const { data: comandos, error } = await supabase.from('comandos').select()
         if (error) {
             console.error('Erro ao carregar comandos do Supabase:', error)
             return
         }
 
-        // Agrupar por categoria
+        // Agrupar comandos por categoria
         const categorias = {}
         for (const cmd of comandos) {
             if (!cmd.command) continue
@@ -22,21 +37,34 @@ export default function commandRoute(client) {
             categorias[categoria].push(cmd)
         }
 
-        // /menu: mostra lista dos comandos agrupados por categoria (só títulos)
-        if (inputCommand === 'menu') {
-            let menu = '*_░ി❁⭝ Comandos*\n\n'
-            for (const cat in categorias) {
-                const formattedCat = cat.charAt(0).toUpperCase() + cat.slice(1)
-                const listCommands = categorias[cat]
-                    .map(c => `- /${c.command}${c.title ? ` - ${c.title}` : ''}`)
-                    .join('\n')
-                menu += `▚ׁ̣۬❏̷̸ⷢ♔͎┄  ${formattedCat}\n${listCommands}\n\n`
-            }
-            await msg.reply(menu.trim())
+        // Verificar permissões com base em comando e categoria
+        const found = comandos.find(cmd => cmd.command.toLowerCase() === inputCommand)
+        const categoria = found?.categoria?.toLowerCase()
+
+        if (!grupoAutorizado(inputCommand, categoria, chatId)) {
             return
         }
 
-        // Se for uma categoria, enviar cada response separadamente
+        // /menu: mostra lista dos comandos, filtrando conforme o grupo
+        if (inputCommand === 'menu') {
+            let menu = '*_░ി❁⭝ Comandos*\n\n'
+
+            for (const cat in categorias) {
+                // Se for o grupo de fichas, pula a categoria "geral"
+                if (chatId === GRUPO_FICHAS && cat.toLowerCase() === 'geral') continue
+
+                const listCommands = categorias[cat]
+                    .map(c => `- /${c.command}${c.title ? ` - ${c.title}` : ''}`)
+                    .join('\n')
+
+                const formattedCat = cat.charAt(0).toUpperCase() + cat.slice(1)
+                menu += `▚ׁ̣۬❏̷̸ⷢ♔͎┄  ${formattedCat}\n${listCommands}\n\n`
+            }
+
+            await msg.reply(menu.trim())
+            return
+        }
+        // Se for uma categoria, responder com todos os comandos da categoria
         if (categorias[inputCommand]) {
             for (const cmd of categorias[inputCommand]) {
                 if (cmd.response && cmd.response.trim()) {
@@ -47,7 +75,6 @@ export default function commandRoute(client) {
         }
 
         // Se for um comando individual
-        const found = comandos.find(cmd => cmd.command.toLowerCase() === inputCommand)
         if (found && found.response) {
             await msg.reply(found.response)
         }

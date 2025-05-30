@@ -5,7 +5,8 @@ export default async function qrLogger(client) {
     qrcode.generate(qr, { small: true });
   });
 
-  client.on('ready', () => {
+  client.on('ready', async () => {
     console.log('✅ Client is ready');
   });
+
 }
