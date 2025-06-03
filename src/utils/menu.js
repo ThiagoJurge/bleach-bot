@@ -39,7 +39,7 @@ export default async function gerarMenu(groupId, comandos, options = {}) {
       .join("\n");
 
     const catFormatada = cat.charAt(0).toUpperCase() + cat.slice(1);
-    menu += `▚ׁ̣۬❏̷̸ⷢ♔͎┄  ${catFormatada}\n${comandosDaCategoria}\n\n`;
+    menu += `▚ׁ̣۬❏̷̸ⷢ♔͎┄  ${catFormatada}\nUtilize: /${cat.toLowerCase()} para ver todas as respostas.\n\n${comandosDaCategoria}\n\n`;
   }
 
   return menu.trim();

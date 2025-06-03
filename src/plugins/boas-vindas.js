@@ -1,4 +1,5 @@
 import gerarMenu from "../utils/menu.js";
+import supabase from "../utils/supabaseClient.js";
 
 export default function boasVindas(client) {
   client.on("group_join", async (notification) => {
