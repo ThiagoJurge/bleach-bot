@@ -35,7 +35,10 @@ export default async function gerarMenu(groupId, comandos, options = {}) {
     }
 
     const comandosDaCategoria = categorias[cat]
-      .map(c => `- /${c.command}${c.title ? ` - ${c.title}` : ""}`)
+      .map((c, i) => {
+        const prefixo = `#${cat.charAt(0).toUpperCase()}${String(i + 1).padStart(3, "0")}`;
+        return `- ${prefixo}${c.title ? ` - ${c.title}` : ""}`;
+      })
       .join("\n");
 
     const catFormatada = cat.charAt(0).toUpperCase() + cat.slice(1);
